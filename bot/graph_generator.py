@@ -11,13 +11,30 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'modules'))
 from modules.visualizer import plot_strategy_results
 
 
-def generate_backtest_graph():
-    """Generate the backtest graph (last 24 hours) and return the file path."""
+def generate_backtest_graph(coin='BTC'):
+    """Generate the backtest graph (last 24 hours) for a specific coin and return the file path."""
     project_root = os.path.dirname(os.path.dirname(__file__))
-    backtest_file = os.path.join(project_root, 'data', 'btc_backtest.csv')
+    
+    # Map coin to file
+    coin_files = {
+        'BTC': 'data/btc_backtest.csv',
+        'TAO': 'data/tao_backtest.csv'
+    }
+    
+    coin_names = {
+        'BTC': 'Bitcoin',
+        'TAO': 'Bittensor'
+    }
+    
+    coin = coin.upper()
+    if coin not in coin_files:
+        return None, f"Unsupported coin: {coin}. Supported coins: BTC, TAO"
+    
+    backtest_file = os.path.join(project_root, coin_files[coin])
+    coin_name = coin_names.get(coin, coin)
     
     if not os.path.exists(backtest_file):
-        return None, "Backtest file not found. Please run test_backtester.py first."
+        return None, f"{coin_name} backtest file not found. Please run test_backtester.py first."
     
     try:
         df = pd.read_csv(backtest_file)
@@ -35,21 +52,21 @@ def generate_backtest_graph():
             df = df[df.index >= cutoff_time]
         
         if df.empty:
-            return None, "No data available for the last 24 hours."
+            return None, f"No {coin_name} data available for the last 24 hours."
         
         # Ensure charts directory exists
         charts_dir = os.path.join(project_root, 'charts')
         os.makedirs(charts_dir, exist_ok=True)
         
         # Generate visualization
-        output_image = "charts/strategy_results.png"
+        output_image = f"charts/{coin.lower()}_strategy_results.png"
         plot_strategy_results(df, output_image, show_plot=False)
         
         full_path = os.path.join(project_root, output_image)
         return full_path, None
         
     except Exception as e:
-        return None, f"Error generating graph: {str(e)}"
+        return None, f"Error generating {coin_name} graph: {str(e)}"
 
 
 def generate_signal_plot(df, filepath):

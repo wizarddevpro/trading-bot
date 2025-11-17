@@ -242,15 +242,3 @@ class Recorder:
                 logger.error(f"Main loop error: {e}")
                 time.sleep(5)
 
-
-if __name__ == '__main__':
-    # Only two options: no arg (default file) or CSV path
-    if len(sys.argv) > 1 and sys.argv[1].endswith('.csv'):
-        filename = sys.argv[1]
-    else:
-        filename = './data/btc_prices.csv'
-
-    recorder = Recorder(symbol='BTCUSDT', interval=60, filename=filename, verbose=True)
-    logger.info(f"Recording to {filename}")
-    recorder.start()
-

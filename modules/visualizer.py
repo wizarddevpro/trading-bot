@@ -8,8 +8,8 @@ def plot_strategy_results(df, output_image, show_plot=True):
   # Use 'price' if available, otherwise 'close'
   price_col = 'price' if 'price' in df.columns else 'close'
 
-  short_window = os.getenv('SHORT_WINDOW', 50)  
-  long_window = os.getenv('LONG_WINDOW', 200)
+  short_window = int(os.getenv('SHORT_WINDOW', 50))  
+  long_window = int(os.getenv('LONG_WINDOW', 200))
   
   plt.figure(figsize=(12, 8))
 
