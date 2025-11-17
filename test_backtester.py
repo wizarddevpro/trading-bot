@@ -52,10 +52,10 @@ def main():
 	results_df.to_csv(output_file, index=False)
 	
 	print(f'Backtest completed and saved to: {output_file}')
-	print(f'Total return: {performance["total_return"]:.2f}%')
+	print(f'\nTotal return: {performance["total_return"]:.2f}%')
 	print(f'Final value: ${performance["final_value"]:,.2f}')
 	print(f'Max drawdown: {performance["max_drawdown"]:.2f}%')
-	print(f'Win rate: {performance["win_rate"]:.6f}%')
+	print(f'\nWin rate: {performance["win_rate"]:.6f}%')
 
 
 if __name__ == '__main__':

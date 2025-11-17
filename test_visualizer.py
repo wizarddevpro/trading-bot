@@ -4,6 +4,7 @@
 import os
 import sys
 import pandas as pd
+from datetime import timedelta
 
 import dotenv
 dotenv.load_dotenv()
@@ -28,8 +29,14 @@ def main():
     print("Error: No 'price' or 'close' column found in data.")
     return
   
+  # Filter to last 24 hours
+  if not df.empty:
+    last_timestamp = df.index.max()
+    cutoff_time = last_timestamp - timedelta(hours=24)
+    df = df[df.index >= cutoff_time]
+  
   print(f"\nGenerating visualization...")
-  print(f"Data points: {len(df)}")
+  print(f"Data points (last 24 hours): {len(df)}")
   
   # Ensure charts directory exists
   os.makedirs('charts', exist_ok=True)

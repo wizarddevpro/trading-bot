@@ -4,7 +4,7 @@ import os
 import dotenv
 dotenv.load_dotenv()
 
-def plot_strategy_results(df, output_image):
+def plot_strategy_results(df, output_image, show_plot=True):
   # Use 'price' if available, otherwise 'close'
   price_col = 'price' if 'price' in df.columns else 'close'
 
@@ -44,4 +44,7 @@ def plot_strategy_results(df, output_image):
 
   plt.tight_layout()
   plt.savefig(filename)
-  plt.show()
+  if show_plot:
+    plt.show()
+  else:
+    plt.close()
