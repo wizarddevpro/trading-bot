@@ -1,6 +1,6 @@
 # 📈 Crypto Trading Bot
 
-A Python toolkit for collecting minute-level BTC/USDT data, analysing market structure, and exercising a moving-average trading workflow end-to-end.
+A multi-coin (BTC & TAO) trading toolkit for recording minute-level prices, analysing market structure, and running configurable moving-average strategies with Telegram delivery.
 
 ## ✨ Features
 

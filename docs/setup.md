@@ -1,6 +1,6 @@
 # Trading Bot - Setup Guide
 
-Step-by-step instructions for installing, configuring, and operating the BTC trading bot toolkit.
+Step-by-step instructions for installing, configuring, and operating the BTC & TAO trading bot toolkit (multi-coin with Telegram integration).
 
 ---
 
@@ -34,21 +34,27 @@ pip install -r requirements.txt
 
 ```
 trading-bot/
-├── modules/                # Core application modules
+├── bot/                    # Telegram handlers & graph helpers
+│   ├── commands.py
+│   ├── config.py
+│   ├── graph_generator.py
+│   ├── poller.py
+│   ├── telegram.py
+│   └── user_preferences.py
+├── modules/                # Core trading logic
 │   ├── analyzer.py         # Price chart generation
 │   ├── backtester.py       # Portfolio simulation logic
 │   ├── detector.py         # Volatility & pattern summaries
 │   ├── historical.py       # Binance 1m backfill helper
 │   ├── ma_strategy.py      # Moving-average strategy
-│   ├── recorder.py         # Live price capture
+│   ├── recorder.py         # Base recorder (BTC-only)
 │   └── visualizer.py       # Signal + equity plotting
 ├── data/                   # CSV outputs (created at runtime)
 ├── charts/                 # Generated chart images
 ├── docs/                   # Documentation (this folder)
 ├── live_signal_monitor.py  # Real-time BUY/SELL alert loop
+├── multi_coin_recorder.py  # BTC & TAO recorder
 ├── test_backtester.py      # Smoke script for backtesting stage
-├── test_detect.py          # Pattern detection demo
-├── test_ma_strategy.py     # Moving-average signal generator
 ├── test_visualizer.py      # Charting smoke test
 ├── requirements.txt        # Python dependencies
 └── README.md               # Project overview
@@ -74,14 +80,14 @@ Install optional tooling (e.g., `pytest`) as needed via `pip install pytest`.
 
 ## Core Workflows
 
-### 1. Record Minute-Level Prices
+### 1. Record Minute-Level Prices (BTC & TAO)
 
 ```bash
 source venv/bin/activate
-python modules/recorder.py
+python multi_coin_recorder.py
 ```
 
-- Writes data to `data/btc_prices.csv`
+- Writes data to `data/btc_prices.csv` and `data/tao_prices.csv`
 - Handles API hiccups with retries and minimal logging noise
 - Press `Ctrl+C` to stop recording
 
@@ -90,49 +96,30 @@ python modules/recorder.py
 ```python
 from modules.recorder import Recorder
 
-recorder = Recorder(
-    symbol='BTCUSDT',
-    interval=60,
-    filename='/home/ubuntu/work/trading-bot/data/btc_prices.csv',
-)
-recorder.start()
+btc_recorder = Recorder(symbol='BTCUSDT', filename='data/btc_prices.csv')
+tao_recorder = Recorder(symbol='TAOUSDT', filename='data/tao_prices.csv')
+btc_recorder.start()
+tao_recorder.start()
 ```
 
-### 2. Generate Moving-Average Signals
-
-```bash
-python test_ma_strategy.py
-```
-
-- Consumes `data/btc_prices.csv`
-- Outputs `data/btc_signals.csv` with short/long MAs and crossover signals
-
-### 3. Backtest the Strategy
+### 2. Backtest the Strategy
 
 ```bash
 python test_backtester.py
 ```
 
-- Requires `data/btc_signals.csv`
-- Appends portfolio value and daily return columns
-- Produces `data/btc_backtest.csv` with formatted numbers
+- Consumes the latest `data/<coin>_prices.csv`
+- Produces `data/<coin>_backtest.csv` with price, MAs, portfolio metrics
+- Uses environment-configured MA windows per coin (`SHORT_WINDOW`, `LONG_WINDOW`, `LOW/MID/HIGH_WINDOW`)
 
-### 4. Visualise Results
+### 3. Visualise Results
 
 ```bash
 python modules/analyzer.py        # 24h price chart → charts/price_chart.png
 python test_visualizer.py         # Equity + signal chart → charts/strategy_results.png
 ```
 
-### 5. Explore Patterns & Volatility
-
-```bash
-python test_detect.py
-```
-
-- Prints sharp moves, intraday volatility, and net change summaries using `modules.detector.find_pattern`.
-
-### 6. Monitor Live Signals (Optional)
+### 4. Monitor Live Signals + Telegram (Optional)
 
 ```bash
 export TELEGRAM_BOT_TOKEN="xxx"
@@ -140,8 +127,18 @@ export TELEGRAM_CHAT_ID="yyy"
 python live_signal_monitor.py
 ```
 
-- Recomputes moving averages every minute from `data/btc_prices.csv`
-- Prints BUY/SELL transitions and pushes Telegram notifications when credentials are set
+- Recomputes moving averages every minute from both `data/btc_prices.csv` and `data/tao_prices.csv`
+- Sends BUY/SELL/HOLD messages plus `/3ma` chart responses to active Telegram chats
+
+### 5. Request 3-MA Chart On Demand
+
+Inside Telegram:
+```
+/3ma
+```
+
+- Pulls LOW/MID/HIGH window sizes from `.env`
+- Generates `charts/<coin>_3ma_strategy.png` and sends it to the requesting chat
 
 ---
 
@@ -158,10 +155,14 @@ from modules.historical import fetch_minute_prices
 rows = fetch_minute_prices('BTCUSDT', start_dt, end_dt)
 ```
 
-**Tune strategy windows**
-```python
-from modules.ma_strategy import MovingAverageStrategy
-strategy = MovingAverageStrategy(short_window=20, long_window=100)
+**Tune strategy windows via .env**
+```
+SHORT_WINDOW=50
+LONG_WINDOW=200
+LOW_WINDOW=10
+MID_WINDOW=30
+HIGH_WINDOW=90
+TAO_LOW_WINDOW=20
 ```
 
 ---
@@ -174,7 +175,7 @@ strategy = MovingAverageStrategy(short_window=20, long_window=100)
 | Binance API errors | Check network, retry later, or swap endpoint in `modules/recorder.py` |
 | Charts not displaying | Headless environments still save PNGs; comment out `plt.show()` if needed |
 | CSV permission errors | `chmod 644 data/*.csv` |
-| Missing signals/backtest files | Run `test_ma_strategy.py` before `test_backtester.py` |
+| Missing backtest files | Ensure recorder produced data and rerun `test_backtester.py` |
 
 ---
 
@@ -183,7 +184,7 @@ strategy = MovingAverageStrategy(short_window=20, long_window=100)
 - Keep the recorder running in a dedicated terminal for continuous data.
 - Version-control your notebooks/scripts but ignore `data/`, `charts/`, `venv/`, and `__pycache__/`.
 - Snapshot CSV outputs before major experiments.
-- Log key findings in `docs/observations.md` after each analysis pass.
+- Log key findings in `docs/observations.md` after each analysis pass (include both coins).
 - Run `python -m pytest` occasionally to smoke-test the workflow.
 
 ---
