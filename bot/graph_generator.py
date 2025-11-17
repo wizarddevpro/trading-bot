@@ -155,7 +155,7 @@ def generate_three_ma_chart(coin='BTC'):
         return None, f"Error generating {coin_name} 3-MA chart: {str(e)}"
 
 
-def generate_signal_plot(df, filepath):
+def generate_signal_plot(df, coin_key, filepath):
     """Generate a signal plot from dataframe."""
     df = df.copy()
     df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -177,7 +177,7 @@ def generate_signal_plot(df, filepath):
     if "long_ma" in df.columns:
         plt.plot(df["timestamp"], df["long_ma"], label="Long MA", linewidth=1)
 
-    plt.title("BTC Price + Moving Averages (Last 24 hours)")
+    plt.title(f"{coin_key.upper()} Price + Moving Averages (Last 24 hours)")
     plt.xlabel("Time")
     plt.ylabel("Price ($)")
     plt.legend()

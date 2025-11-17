@@ -171,7 +171,7 @@ def process_coin_signals(coin_key, coin_config, last_signals):
                 'charts', 
                 f'{coin_key.lower()}_signal_plot.png'
               )
-              if generate_signal_plot(df, plot_filepath):
+              if generate_signal_plot(df, coin_key, plot_filepath):
                 for chat_id in active_users:
                   send_photo_to_chat(chat_id, plot_filepath)
           
