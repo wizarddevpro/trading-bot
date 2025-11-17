@@ -1,4 +1,4 @@
-# 📈 BTC Trading Bot
+# 📈 Crypto Trading Bot
 
 A Python toolkit for collecting minute-level BTC/USDT data, analysing market structure, and exercising a moving-average trading workflow end-to-end.
 
