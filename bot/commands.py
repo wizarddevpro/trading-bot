@@ -13,7 +13,7 @@ from modules.backtester import Backtester
 from modules.ma_strategy import MovingAverageStrategy
 
 from bot.telegram import send_message_to_chat, send_photo_to_chat
-from bot.graph_generator import generate_backtest_graph
+from bot.graph_generator import generate_backtest_graph, generate_three_ma_chart
 from bot.user_preferences import (
     get_user_coin, 
     set_user_coin, 
@@ -173,6 +173,35 @@ def handle_command(command: str, chat_id: str):
         set_user_coin(chat_id, 'TAO')
         send_message_to_chat(chat_id, "✅ Trading token set to TAO")
     
+    elif command == '/3ma':
+        user_coin = get_user_coin(chat_id)
+        coin_names = {'BTC': 'Bitcoin', 'TAO': 'Bittensor'}
+        coin_name = coin_names.get(user_coin, user_coin)
+        config = get_coin_config(user_coin)
+        
+        send_message_to_chat(
+            chat_id,
+            f"📊 Generating {coin_name} 3-MA chart "
+            f"(LOW {config['low_window']}, MID {config['mid_window']}, HIGH {config['high_window']})..."
+        )
+        
+        chart_path, chart_error = generate_three_ma_chart(user_coin)
+        if chart_error:
+            send_message_to_chat(chat_id, f"⚠️ {chart_error}")
+        elif chart_path and os.path.exists(chart_path):
+            if send_photo_to_chat(chat_id, chart_path):
+                send_message_to_chat(
+                    chat_id,
+                    (
+                        "✅ 3-MA analysis ready!\n"
+                        f"LOW: {config['low_window']} | MID: {config['mid_window']} | HIGH: {config['high_window']}"
+                    )
+                )
+            else:
+                send_message_to_chat(chat_id, "⚠️ Failed to send 3-MA chart image.")
+        else:
+            send_message_to_chat(chat_id, "⚠️ 3-MA chart could not be generated.")
+    
     elif command == '/help':
         current_coin = get_user_coin(chat_id)
         active_status = "✅ Active" if is_user_active(chat_id) else "❌ Inactive"
@@ -189,6 +218,7 @@ def handle_command(command: str, chat_id: str):
             "/btc - Set token to BTC\n"
             "/tao - Set token to TAO\n"
             "/test - Run backtest for current token\n"
+            "/3ma - Send 3-MA chart for current token\n"
             "/help - Show this help message"
         )
         send_message_to_chat(chat_id, help_text)

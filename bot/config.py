@@ -16,21 +16,19 @@ def get_coin_config(coin: str):
         coin: Coin symbol (BTC, TAO, etc.)
         
     Returns:
-        dict with keys: short_window, long_window, initial_capital
+        dict with keys: short_window, long_window, initial_capital,
+        low_window, mid_window, high_window
     """
     coin = coin.upper()
+
+    def _get_value(key: str, default: str):
+        return os.getenv(f'{coin}_{key}', os.getenv(key, default))
     
-    # Get coin-specific values, fallback to generic values
-    short_window = os.getenv(
-        f'{coin}_SHORT_WINDOW',
-        os.getenv('SHORT_WINDOW', '50')
-    )
-    
-    long_window = os.getenv(
-        f'{coin}_LONG_WINDOW',
-        os.getenv('LONG_WINDOW', '200')
-    )
-    
+    short_window = _get_value('SHORT_WINDOW', '50')
+    long_window = _get_value('LONG_WINDOW', '200')
+    low_window = _get_value('LOW_WINDOW', '10')
+    mid_window = _get_value('MID_WINDOW', '20')
+    high_window = _get_value('HIGH_WINDOW', '50')
     initial_capital = os.getenv(
         f'{coin}_INITIAL_CAPITAL',
         os.getenv('INITIAL_CAPITAL', '1000000')
@@ -39,6 +37,9 @@ def get_coin_config(coin: str):
     return {
         'short_window': int(short_window),
         'long_window': int(long_window),
-        'initial_capital': float(initial_capital)
+        'initial_capital': float(initial_capital),
+        'low_window': int(low_window),
+        'mid_window': int(mid_window),
+        'high_window': int(high_window),
     }
 

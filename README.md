@@ -4,12 +4,12 @@ A Python toolkit for collecting minute-level BTC/USDT data, analysing market str
 
 ## ✨ Features
 
-- **Live price recorder** pulling Binance ticker data with automatic gap detection and optional historical backfill.
-- **Signal engine** using configurable moving-average crossover logic.
+- **Multi-coin recorder** for BTC and TAO with automatic gap detection and optional historical backfill.
+- **Configurable signal engine** powered by moving-average crossover logic.
 - **Strategy backtester** with portfolio value tracking and summary metrics.
+- **Triple moving-average overlays** (LOW/MID/HIGH windows) including a Telegram-ready chart command.
 - **Visual reporting** that plots prices, signals, and equity curves.
-- **Pattern scanner** for volatility and sharp-move detection.
-- **Live signal monitor** that can push BUY/SELL alerts to Telegram.
+- **Telegram bot integration** that delivers BUY/SELL/HOLD signals plus `/3ma` chart snapshots.
 
 ---
 
@@ -25,39 +25,35 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# 2) Collect BTC/USDT prices once per minute
-python modules/recorder.py               # writes to data/btc_prices.csv
+# 2) Collect BTC/TAO prices once per minute
+python multi_coin_recorder.py            # writes data/btc_prices.csv & data/tao_prices.csv
 
-# 3) Create moving-average signals & export to CSV
-python test_ma_strategy.py               # outputs data/btc_signals.csv
+# 3) Run a strategy backtest (writes data/<coin>_backtest.csv)
+python test_backtester.py
 
-# 4) Backtest the strategy and store portfolio values
-python test_backtester.py                # outputs data/btc_backtest.csv
-
-# 5) Generate charts / analysis artefacts
+# 4) (Optional) Generate charts / analysis artefacts
 python modules/analyzer.py               # price trend chart
 python test_visualizer.py                # composite equity + signal chart
 
-# 6) Explore volatility & intraday patterns
-python test_detect.py
+# 5) Start live monitoring + Telegram bot
+python live_signal_monitor.py
 ```
 
 ---
 
 ## 🧭 Typical Workflow
 
-1. **Record data** with `modules/recorder.py` (leave it running to build `data/btc_prices.csv`).
-2. **Optionally backfill missing minutes** by importing `modules.historical.fetch_minute_prices` in your own scripts.
-3. **Derive signals** via `test_ma_strategy.py`, which persists moving averages, crossover signals, and cleaned pricing to `data/btc_signals.csv`.
-4. **Run a backtest** with `test_backtester.py` to append portfolio values and daily returns (`data/btc_backtest.csv`).
-5. **Visualise** results using `modules/analyzer.py` and `modules/visualizer.plot_strategy_results`, storing charts in `charts/`.
-6. **Inspect patterns** with `modules/detector.find_pattern` or the helper script `test_detect.py`.
+1. **Ingest prices** via `multi_coin_recorder.py` (or `modules/recorder.py` if you only care about BTC).
+2. **Backfill or clean gaps** using helpers inside `modules/historical.py` when needed.
+3. **Backtest** the latest CSV with `test_backtester.py` to generate `data/<coin>_backtest.csv`.
+4. **Visualise** results using `modules/analyzer.py` and `modules/visualizer.plot_strategy_results`, storing PNGs in `charts/`.
+5. **Go live** with `live_signal_monitor.py`, which recomputes indicators, detects crossovers, and pushes Telegram alerts.
 
 ---
 
 ## 📡 Live Signal Monitor
 
-`live_signal_monitor.py` watches `data/btc_prices.csv`, recomputes MAs every minute, and prints/pushes new BUY/SELL signals. To enable Telegram alerts, set:
+`live_signal_monitor.py` watches `data/<coin>_prices.csv`, recomputes moving averages every minute, and prints/pushes new BUY/SELL signals. To enable Telegram alerts, make sure your `.env` (or exported env vars) includes:
 
 ```bash
 export TELEGRAM_BOT_TOKEN="xxx"
@@ -66,6 +62,33 @@ python live_signal_monitor.py
 ```
 
 The script throttles duplicate alerts and logs each actionable crossover with the current price and MA context.
+
+---
+
+## 📐 Triple Moving Average Analysis
+
+Configure three independent moving-average windows by setting the following variables in a `.env` file (coin-specific overrides like `BTC_LOW_WINDOW` are also supported):
+
+```bash
+LOW_WINDOW=10
+MID_WINDOW=20
+HIGH_WINDOW=50
+```
+
+Once the bot is running, send `/3ma` to the Telegram bot to receive a price chart over the last 24 hours with the LOW, MID, and HIGH moving averages applied to your currently selected coin and recorded window sizes.
+
+---
+
+## 🤖 Telegram Commands
+
+| Command | Description |
+| --- | --- |
+| `/start` | Enables signal delivery for your chat and reports the active coin. |
+| `/coin` | Shows the token selection menu. |
+| `/btc`, `/tao` | Switch the active token and persist the preference. |
+| `/test` | Runs a backtest for the active token and shares a performance summary + chart. |
+| `/3ma` | Sends a 24h triple moving-average chart using LOW/MID/HIGH windows from `.env`. |
+| `/help` | Displays the current status plus all supported commands. |
 
 ---
 
@@ -110,7 +133,14 @@ Pytest will discover the `test_*.py` files; keep in mind that these scripts prin
 
 ```
 trading-bot/
-├── modules/                # Core application modules
+├── bot/                    # Telegram bot handlers & helpers
+│   ├── commands.py
+│   ├── config.py
+│   ├── graph_generator.py
+│   ├── poller.py
+│   ├── telegram.py
+│   └── user_preferences.py
+├── modules/                # Core trading logic
 │   ├── analyzer.py
 │   ├── backtester.py
 │   ├── detector.py
@@ -118,13 +148,12 @@ trading-bot/
 │   ├── ma_strategy.py
 │   ├── recorder.py
 │   └── visualizer.py
-├── data/                   # CSV outputs (created at runtime)
+├── data/                   # Runtime CSV outputs (prices, signals, backtests)
 ├── charts/                 # Generated chart images
 ├── docs/                   # Extended documentation
-├── live_signal_monitor.py  # Real-time alert runner
+├── live_signal_monitor.py  # Real-time alert runner + Telegram bridge
+├── multi_coin_recorder.py  # Recorder for BTC & TAO simultaneously
 ├── test_backtester.py
-├── test_detect.py
-├── test_ma_strategy.py
 ├── test_visualizer.py
 ├── requirements.txt
 └── README.md

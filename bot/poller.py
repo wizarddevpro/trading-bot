@@ -29,6 +29,8 @@ def process_updates(offset=None):
                 handle_command('/btc', chat_id)
             elif text.startswith('/tao'):
                 handle_command('/tao', chat_id)
+            elif text.startswith('/3ma'):
+                handle_command('/3ma', chat_id)
             elif text.startswith('/start'):
                 handle_command('/start', chat_id)
             elif text.startswith('/help'):

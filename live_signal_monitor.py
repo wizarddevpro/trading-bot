@@ -147,6 +147,8 @@ def process_coin_signals(coin_key, coin_config, last_signals):
           # Append to signal log file
           try:
             signal_df = pd.DataFrame([signal_data])
+            signal_df['short_ma'] = signal_df['short_ma'].apply(lambda x: f'{float(x):.2f}')
+            signal_df['long_ma'] = signal_df['long_ma'].apply(lambda x: f'{float(x):.2f}')
             if os.path.exists(signal_file):
               signal_df.to_csv(signal_file, mode='a', header=False, index=False)
             else:
