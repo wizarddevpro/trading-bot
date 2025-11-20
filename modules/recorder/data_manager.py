@@ -75,7 +75,7 @@ class DataManager:
             combined_df['timestamp'] = pd.to_datetime(combined_df['timestamp'])
             combined_df['price'] = pd.to_numeric(combined_df['price'], errors='coerce').round(2)
             
-            combined_df = combined_df.dropna(subset=['price'])
+            combined_df = combined_df.dropna(subset=['timestamp', 'price'])
             
             if deduplicate:
                 combined_df = combined_df.sort_values('timestamp').drop_duplicates(subset=['timestamp'], keep='last')

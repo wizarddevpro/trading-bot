@@ -3,6 +3,7 @@
 import os
 import requests
 import dotenv
+from bot.user_preferences import get_all_active_users
 
 dotenv.load_dotenv()
 
@@ -18,16 +19,6 @@ def get_api_url():
     if not token:
         return None
     return f"https://api.telegram.org/bot{token}"
-
-
-def load_chat_ids():
-    """Load Telegram chat IDs from environment variable."""
-    ids = os.getenv("TELEGRAM_CHAT_ID", "")
-    if not ids:
-        return []
-    
-    # Split by comma, trim whitespace
-    return [chat_id.strip() for chat_id in ids.split(",") if chat_id.strip()]
 
 
 def send_message_to_chat(chat_id: str, message: str):
@@ -71,14 +62,14 @@ def send_photo_to_chat(chat_id: str, photo_path: str):
 
 def send_broadcast_message(message: str):
     """Send a message to all configured chat IDs."""
-    chat_ids = load_chat_ids()
+    chat_ids = get_all_active_users()
     for chat_id in chat_ids:
         send_message_to_chat(chat_id, message)
 
 
 def send_broadcast_photo(photo_path: str):
     """Send a photo to all configured chat IDs."""
-    chat_ids = load_chat_ids()
+    chat_ids = get_all_active_users()
     for chat_id in chat_ids:
         send_photo_to_chat(chat_id, photo_path)
 
