@@ -69,6 +69,83 @@ def format_log_message(coin_name, signal, row):
   return message
 
 
+def get_last_total_and_buy_price(signal_file):
+  """Get the last total value and last BUY price from the signal CSV file."""
+  last_total = 0.0
+  last_buy_price = None
+  
+  if not os.path.exists(signal_file):
+    return last_total, last_buy_price
+  
+  try:
+    df = pd.read_csv(signal_file)
+    if df.empty:
+      return last_total, last_buy_price
+    
+    # Get last total
+    if 'total' in df.columns:
+      last_total = float(df['total'].iloc[-1])
+    
+    # Get last BUY price (find the most recent BUY signal)
+    if 'signal' in df.columns and 'price' in df.columns:
+      buy_signals = df[df['signal'] == 'BUY']
+      if not buy_signals.empty:
+        last_buy_price = float(buy_signals['price'].iloc[-1])
+    
+    return last_total, last_buy_price
+  except Exception as e:
+    print(f"Error reading signal file {signal_file}: {e}")
+    return last_total, last_buy_price
+
+
+def save_signal_with_profit(coin_key, signal, price, timestamp):
+  """Save signal to CSV with profit and total columns.
+  Profit calculation starts from BUY: profit is only calculated on SELL (sell_price - buy_price).
+  """
+  project_root = os.path.dirname(__file__)
+  signal_file = os.path.join(project_root, 'data', f'{coin_key.lower()}_signals.csv')
+  
+  # Get last total and last BUY price
+  last_total, last_buy_price = get_last_total_and_buy_price(signal_file)
+  
+  # Calculate profit based on signal type
+  # Profit calculation starts from BUY: only SELL calculates actual profit
+  if signal == 'BUY':
+    # BUY: profit is 0 (we're just recording the buy price)
+    profit = 0.0
+    total = last_total  # Total doesn't change on BUY, profit is calculated on SELL
+  elif signal == 'SELL':
+    # SELL: calculate profit as (sell_price - buy_price) if we have a previous BUY
+    if last_buy_price is not None:
+      profit = float(price) - last_buy_price  # Actual profit from the trade
+    else:
+      # No previous BUY, profit is just the sell price
+      profit = float(price)
+    total = last_total + profit  # Add profit to total
+  else:  # HOLD
+    profit = 0.0
+    total = last_total  # Total doesn't change for HOLD
+  
+  # Prepare data
+  signal_data = {
+    'time': timestamp,
+    'price': float(price),
+    'signal': signal,
+    'profit': profit,
+    'total': total
+  }
+  
+  # Append to CSV file
+  try:
+    signal_df = pd.DataFrame([signal_data])
+    if os.path.exists(signal_file):
+      signal_df.to_csv(signal_file, mode='a', header=False, index=False)
+    else:
+      signal_df.to_csv(signal_file, mode='w', header=True, index=False)
+  except Exception as e:
+    print(f"Error saving signal to file: {e}")
+
+
 def process_coin_signals(coin_key, coin_config, last_signals):
   """Process signals for a specific coin."""
   csv_file = os.path.join(os.path.dirname(__file__), coin_config['file'])
@@ -117,28 +194,14 @@ def process_coin_signals(coin_key, coin_config, last_signals):
           log_message = format_log_message(coin_name, current_signal, latest_row)
           print(f"*** {log_message} ***")
           
-          # Save signal to file
-          signal_file = os.path.join(os.path.dirname(__file__), 'data', f'{coin_key.lower()}_signals_log.csv')
-          signal_data = {
-            'timestamp': latest_row['timestamp'],
-            'coin': coin_key,
-            'signal': current_signal,
-            'price': latest_row['price'],
-            'short_ma': latest_row.get('short_ma', 'N/A'),
-            'long_ma': latest_row.get('long_ma', 'N/A')
-          }
-          
-          # Append to signal log file
-          try:
-            signal_df = pd.DataFrame([signal_data])
-            signal_df['short_ma'] = signal_df['short_ma'].apply(lambda x: f'{float(x):.2f}')
-            signal_df['long_ma'] = signal_df['long_ma'].apply(lambda x: f'{float(x):.2f}')
-            if os.path.exists(signal_file):
-              signal_df.to_csv(signal_file, mode='a', header=False, index=False)
-            else:
-              signal_df.to_csv(signal_file, mode='w', header=True, index=False)
-          except Exception as e:
-            print(f"Error saving signal to file: {e}")
+          # Save signal to CSV with profit and total (skip HOLD signals)
+          if current_signal != 'HOLD':
+            save_signal_with_profit(
+              coin_key=coin_key,
+              signal=current_signal,
+              price=latest_row['price'],
+              timestamp=latest_row['timestamp']
+            )
           
           # Get all active users (send to everyone who started signal detection)
           active_users = get_all_active_users()

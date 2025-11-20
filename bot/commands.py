@@ -122,7 +122,7 @@ def handle_command(command: str, chat_id: str):
         coin_names = {'BTC': 'Bitcoin', 'TAO': 'Bittensor'}
         coin_name = coin_names.get(user_coin, user_coin)
         
-        send_message_to_chat(chat_id, f"🔄 Running {coin_name} backtest...\nThis may take a moment...")
+        send_message_to_chat(chat_id, f"⌛️ Running {coin_name} backtest... wait a moment...")
         
         # Run backtest
         performance, error = run_backtest_for_coin(user_coin)
@@ -141,13 +141,12 @@ def handle_command(command: str, chat_id: str):
             if send_photo_to_chat(chat_id, graph_path):
                 # Send performance summary
                 summary = (
-                    f"✅ {coin_name} backtest completed!\n\n"
-                    f"📈 Performance Summary:\n"
+                    f"📈 {coin_name} backtest completed!\n"
                     f"• Total return: {performance['total_return']:.2f}%\n"
                     f"• Final value: ${performance['final_value']:,.2f}\n"
                     f"• Max drawdown: {performance['max_drawdown']:.2f}%\n"
                     f"• Win rate: {performance['win_rate']:.6f}%\n\n"
-                    f"Results saved to: data/{user_coin.lower()}_backtest.csv"
+                    f"💾 Saved to: data/{user_coin.lower()}_backtest.csv"
                 )
                 send_message_to_chat(chat_id, summary)
             else:
