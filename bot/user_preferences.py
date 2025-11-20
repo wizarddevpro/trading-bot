@@ -3,7 +3,9 @@
 import os
 import json
 from pathlib import Path
+import dotenv
 
+dotenv.load_dotenv()
 
 PREFERENCES_FILE = Path(__file__).parent.parent / 'data' / 'user_preferences.json'
 
