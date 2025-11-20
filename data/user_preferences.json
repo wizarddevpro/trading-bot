@@ -1,6 +1,12 @@
 {
   "8316945659": {
-    "coin": "TAO",
+    "coin": "BTC",
+    "active": true
+  },
+  "7741814159": {
+    "active": true
+  },
+  "8288397492": {
     "active": true
   }
 }
