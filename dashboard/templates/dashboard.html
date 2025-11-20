@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0e27;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #1a1f3a;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .coin-selector {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .coin-btn {
+            padding: 10px 20px;
+            background: #1a1f3a;
+            border: 1px solid #2a2f4a;
+            color: #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .coin-btn:hover {
+            background: #2a2f4a;
+            border-color: #3a3f5a;
+        }
+
+        .coin-btn.active {
+            background: #4a90e2;
+            border-color: #4a90e2;
+            color: #ffffff;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #1a1f3a;
+            border: 1px solid #2a2f4a;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            color: #ffffff;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .stat-value.positive {
+            color: #4caf50;
+        }
+
+        .stat-value.negative {
+            color: #f44336;
+        }
+
+        .chart-container {
+            background: #1a1f3a;
+            border: 1px solid #2a2f4a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-title {
+            color: #ffffff;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        #priceChart {
+            max-height: 300px;
+        }
+
+        .signals-container {
+            background: #1a1f3a;
+            border: 1px solid #2a2f4a;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .signals-title {
+            color: #ffffff;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #2a2f4a;
+            color: #ffffff;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #3a3f5a;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #2a2f4a;
+            color: #e0e0e0;
+        }
+
+        tr:hover {
+            background: #252a3f;
+        }
+
+        .signal-buy {
+            color: #4caf50;
+            font-weight: 600;
+        }
+
+        .signal-sell {
+            color: #f44336;
+            font-weight: 600;
+        }
+
+        .signal-hold {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .error {
+            background: #3a1f1f;
+            border: 1px solid #5a2f2f;
+            color: #f44336;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Trading Bot Dashboard</h1>
+            <div class="coin-selector" id="coinSelector"></div>
+        </header>
+
+        <div id="errorContainer"></div>
+
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="chart-container">
+            <div class="chart-title">Price History (Last 24 Hours)</div>
+            <canvas id="priceChart"></canvas>
+        </div>
+
+        <div class="signals-container">
+            <div class="signals-title">Trading Signals</div>
+            <div id="signalsTableContainer">
+                <div class="loading">Loading signals...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let priceChart = null;
+        let currentCoin = 'TAO';
+        const coins = ['BTC', 'TAO'];
+
+        // Initialize coin selector
+        function initCoinSelector() {
+            const container = document.getElementById('coinSelector');
+            coins.forEach(coin => {
+                const btn = document.createElement('button');
+                btn.className = 'coin-btn';
+                btn.textContent = coin;
+                btn.onclick = () => selectCoin(coin);
+                if (coin === currentCoin) {
+                    btn.classList.add('active');
+                }
+                container.appendChild(btn);
+            });
+        }
+
+        function selectCoin(coin) {
+            currentCoin = coin;
+            document.querySelectorAll('.coin-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent === coin) {
+                    btn.classList.add('active');
+                }
+            });
+            loadDashboardData();
+        }
+
+        function showError(message) {
+            const container = document.getElementById('errorContainer');
+            container.innerHTML = `<div class="error">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        function updateStats(data) {
+            const container = document.getElementById('statsGrid');
+            const latestPrice = data.latest_price || 0;
+            const totalProfit = data.total_profit || 0;
+            const latestSignal = data.latest_signal || 'N/A';
+
+            container.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Latest Price</div>
+                    <div class="stat-value">$${latestPrice.toFixed(2)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Profit</div>
+                    <div class="stat-value ${totalProfit >= 0 ? 'positive' : 'negative'}">
+                        $${totalProfit.toFixed(2)}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Latest Signal</div>
+                    <div class="stat-value signal-${latestSignal.toLowerCase()}">${latestSignal}</div>
+                </div>
+            `;
+        }
+
+        function updatePriceChart(data) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+
+            if (priceChart) {
+                priceChart.destroy();
+            }
+
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.timestamps,
+                    datasets: [{
+                        label: `${data.coin_name} Price (USD)`,
+                        data: data.prices,
+                        borderColor: '#4a90e2',
+                        backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e0e0e0'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: '#1a1f3a',
+                            titleColor: '#e0e0e0',
+                            bodyColor: '#e0e0e0',
+                            borderColor: '#2a2f4a',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#888',
+                                maxTicksLimit: 12
+                            },
+                            grid: {
+                                color: '#2a2f4a'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#888',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            },
+                            grid: {
+                                color: '#2a2f4a'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateSignalsTable(signals) {
+            const container = document.getElementById('signalsTableContainer');
+            
+            if (!signals || signals.length === 0) {
+                container.innerHTML = '<div class="loading">No signals available</div>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Price</th>
+                            <th>Signal</th>
+                            <th>Profit</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            signals.forEach(signal => {
+                const signalClass = `signal-${signal.signal.toLowerCase()}`;
+                const profitClass = signal.profit >= 0 ? 'positive' : 'negative';
+                html += `
+                    <tr>
+                        <td>${signal.time}</td>
+                        <td>$${parseFloat(signal.price).toFixed(2)}</td>
+                        <td class="${signalClass}">${signal.signal}</td>
+                        <td class="stat-value ${profitClass}">$${parseFloat(signal.profit).toFixed(2)}</td>
+                        <td class="stat-value ${signal.total >= 0 ? 'positive' : 'negative'}">$${parseFloat(signal.total).toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        async function loadDashboardData() {
+            try {
+                // Load coin info
+                const coinsRes = await fetch('/api/coins');
+                const coinsData = await coinsRes.json();
+                
+                if (coinsData.success) {
+                    const coinInfo = coinsData.coins.find(c => c.key === currentCoin);
+                    if (coinInfo) {
+                        updateStats(coinInfo);
+                    }
+                }
+
+                // Load price data
+                const priceRes = await fetch(`/api/price/${currentCoin}`);
+                if (priceRes.ok) {
+                    const priceData = await priceRes.json();
+                    if (priceData.success) {
+                        updatePriceChart(priceData);
+                    } else {
+                        showError(priceData.message || 'Failed to load price data');
+                    }
+                } else {
+                    showError('Failed to load price data');
+                }
+
+                // Load signal data
+                const signalsRes = await fetch(`/api/signals/${currentCoin}`);
+                if (signalsRes.ok) {
+                    const signalsData = await signalsRes.json();
+                    if (signalsData.success) {
+                        updateSignalsTable(signalsData.signals);
+                    } else {
+                        document.getElementById('signalsTableContainer').innerHTML = 
+                            '<div class="loading">No signals available</div>';
+                    }
+                } else {
+                    document.getElementById('signalsTableContainer').innerHTML = 
+                        '<div class="loading">Failed to load signals</div>';
+                }
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showError('Error loading dashboard data. Please refresh the page.');
+            }
+        }
+
+        // Initialize dashboard
+        initCoinSelector();
+        loadDashboardData();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboardData, 60000);
+    </script>
+</body>
+</html>
+

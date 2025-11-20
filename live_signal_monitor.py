@@ -129,10 +129,10 @@ def save_signal_with_profit(coin_key, signal, price, timestamp):
   # Prepare data
   signal_data = {
     'time': timestamp,
-    'price': float(price),
+    'price': round(float(price), 2),
     'signal': signal,
-    'profit': profit,
-    'total': total
+    'profit': round(float(profit), 2),
+    'total': round(float(total), 2)
   }
   
   # Append to CSV file
