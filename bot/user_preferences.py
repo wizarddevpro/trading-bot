@@ -3,7 +3,9 @@
 import os
 import json
 from pathlib import Path
+import dotenv
 
+dotenv.load_dotenv()
 
 PREFERENCES_FILE = Path(__file__).parent.parent / 'data' / 'user_preferences.json'
 
@@ -70,8 +72,23 @@ def is_user_active(chat_id: str):
 def get_all_active_users():
     """Get all chat IDs of active users."""
     preferences = load_preferences()
-    return [
+    users = [
         chat_id for chat_id, prefs in preferences.items()
         if prefs.get('active', False)
     ]
 
+    valid_ids = load_valid_chat_ids()
+
+    users = [user for user in users if user in valid_ids]
+
+    return users
+
+
+def load_valid_chat_ids():
+    """Load Telegram chat IDs from environment variable."""
+    ids = os.getenv("TELEGRAM_CHAT_ID", "")
+    if not ids:
+        return []
+    
+    # Split by comma, trim whitespace
+    return [chat_id.strip() for chat_id in ids.split(",") if chat_id.strip()]
