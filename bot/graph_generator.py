@@ -13,7 +13,7 @@ from bot.config import get_coin_config
 
 
 def generate_backtest_graph(coin='BTC'):
-    """Generate the backtest graph (last 24 hours) for a specific coin and return the file path."""
+    """Generate the backtest graph (last 3 hours) for a specific coin and return the file path."""
     project_root = os.path.dirname(os.path.dirname(__file__))
     
     # Map coin to file
@@ -46,14 +46,14 @@ def generate_backtest_graph(coin='BTC'):
         if 'price' not in df.columns and 'close' not in df.columns:
             return None, "Error: No 'price' or 'close' column found in data."
         
-        # Filter to last 24 hours
+        # Filter to last 3 hours
         if not df.empty:
             last_timestamp = df.index.max()
-            cutoff_time = last_timestamp - timedelta(hours=24)
+            cutoff_time = last_timestamp - timedelta(hours=3)
             df = df[df.index >= cutoff_time]
         
         if df.empty:
-            return None, f"No {coin_name} data available for the last 24 hours."
+            return None, f"No {coin_name} data available for the last 3 hours."
         
         # Ensure charts directory exists
         charts_dir = os.path.join(project_root, 'charts')
@@ -124,12 +124,12 @@ def generate_three_ma_chart(coin='BTC'):
         df['high_ma'] = df[price_col].rolling(window=high_window).mean()
         
         last_timestamp = df['timestamp'].max()
-        cutoff_time = last_timestamp - timedelta(hours=24)
+        cutoff_time = last_timestamp - timedelta(hours=3)
         df = df[df['timestamp'] >= cutoff_time]
         
         df = df.dropna(subset=['low_ma', 'mid_ma', 'high_ma'])
         if df.empty:
-            return None, f"Not enough data to compute {coin_name} 3-MA chart for the last 24 hours."
+            return None, f"Not enough data to compute {coin_name} 3-MA chart for the last 3 hours."
         
         charts_dir = os.path.join(project_root, 'charts')
         os.makedirs(charts_dir, exist_ok=True)
@@ -141,7 +141,7 @@ def generate_three_ma_chart(coin='BTC'):
         plt.plot(df['timestamp'], df['mid_ma'], label=f'Mid MA ({mid_window})', color='#FFC107', linewidth=1.5)
         plt.plot(df['timestamp'], df['high_ma'], label=f'High MA ({high_window})', color='#2196F3', linewidth=1.5)
         
-        plt.title(f"{coin_name} 3-MA Strategy (Last 24h)")
+        plt.title(f"{coin_name} 3-MA Strategy (Last 3 hours)")
         plt.xlabel("Time")
         plt.ylabel("Price (USD)")
         plt.legend()
@@ -161,7 +161,7 @@ def generate_signal_plot(df, coin_key, filepath):
     df["timestamp"] = pd.to_datetime(df["timestamp"])
 
     now = df["timestamp"].iloc[-1]
-    start = now - pd.Timedelta(days=1)
+    start = now - pd.Timedelta(hours=3)
     df = df[df["timestamp"] >= start]
 
     if df.empty:
@@ -169,7 +169,7 @@ def generate_signal_plot(df, coin_key, filepath):
 
     plt.figure(figsize=(8, 4))
 
-    plt.plot(df["timestamp"], df["price"], label="Price", linewidth=1)
+    plt.plot(df["timestamp"], df["price"], label="Price", linewidth=1, alpha=0.5)
     
     if "short_ma" in df.columns:
         plt.plot(df["timestamp"], df["short_ma"], label="Short MA", linewidth=1)
@@ -177,7 +177,7 @@ def generate_signal_plot(df, coin_key, filepath):
     if "long_ma" in df.columns:
         plt.plot(df["timestamp"], df["long_ma"], label="Long MA", linewidth=1)
 
-    plt.title(f"{coin_key.upper()} Price + Moving Averages (Last 24 hours)")
+    plt.title(f"{coin_key.upper()} Price + Moving Averages (Last 3 hours)")
     plt.xlabel("Time")
     plt.ylabel("Price ($)")
     plt.legend()

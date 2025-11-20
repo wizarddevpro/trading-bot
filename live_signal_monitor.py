@@ -57,30 +57,14 @@ def format_log_message(coin_name, signal, row):
   timestamp = row['timestamp']
   price = row['price']
   
-  if signal == 'HOLD': header_icon = '🔍'
+  if signal == 'HOLD': header_icon = '💎'
   elif signal == 'BUY': header_icon = '🟢'
   elif signal == 'SELL': header_icon = '🔴'
 
-  if pd.notna(row['short_ma']):
-    short_ma_str = f"{row['short_ma']:.2f}"
-  else:
-    short_ma_str = 'N/A'
-  
-  if pd.notna(row['long_ma']):
-    long_ma_str = f"{row['long_ma']:.2f}"
-  else:
-    long_ma_str = 'N/A'
-  
   message = (
     f"{header_icon} {coin_name} {signal}\n"
-    f"================================================\n"
-    f"🕘 {timestamp}\n"
-    f"💲 ${price:.2f}\n"
+    f"🕘 {timestamp} → 💲 {price:.2f}\n"
   )
-
-  if signal != 'HOLD':
-    message += f"🔍 Short MA: {short_ma_str}\n"
-    message += f"🔍 Long MA: {long_ma_str}\n"
 
   return message
 
