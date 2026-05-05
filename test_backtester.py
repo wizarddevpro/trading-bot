@@ -111,9 +111,9 @@ def process_coin_backtest(coin_key, coin_config):
 
 def main():
     """Process backtests for all coins."""
-    print("=" * 80)
+    print("=" * 60)
     print("Multi-Coin Backtester")
-    print("=" * 80)
+    print("=" * 60)
     
     results = {}
     
