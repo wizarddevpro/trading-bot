@@ -16,9 +16,6 @@ A multi-coin (BTC & TAO) trading toolkit for recording minute-level prices, anal
 ## 🚀 Quick Start
 
 ```bash
-# 0) Clone (optional if you're already inside the repo)
-git clone https://github.com/Icebitz/trading-bot.git
-cd trading-bot
 
 # 1) Setup
 python3 -m venv venv
